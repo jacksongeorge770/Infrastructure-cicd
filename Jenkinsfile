@@ -1,78 +1,44 @@
 pipeline {
     agent any
-
     environment {
-        DOCKER_IMAGE = 'jackson216/jenkin' // Your Docker Hub repository
+        DOCKERHUB_CREDENTIALS = credentials('docker-cred')
+        GIT_CREDENTIALS = credentials('git-cred')
+        IMAGE_NAME = "jackson216/my-app" // Your Docker Hub repo
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
-
     stages {
-        stage('Clone Repository') {
+        stage('Clone Source Code Repository') {
             steps {
-                git credentialsId: 'git-cred', url: 'https://github.com/jacksongeorge770/cicd-pipeline.git'
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh 'docker build -t $DOCKER_IMAGE:latest .'
-                }
+                git branch: 'main', 
+                    credentialsId: 'github-credentials', 
+                    url: 'https://github.com/jacksongeorge770/cicd-pipeline.git' // Source code repo
             }
         }
-
         stage('Login to Docker Hub') {
             steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'docker-cred',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )
-                ]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                }
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
-
-        stage('Push Docker Image') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker push $DOCKER_IMAGE:latest'
-                }
+                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
             }
         }
-
-        stage('Deploy to EC2') {
+        stage('Push to Docker Hub') {
             steps {
-                script {
-                    sh '''
-                        docker rm -f myapp-container || true
-                        docker run -d --name myapp-container -p 8081:8080 $DOCKER_IMAGE:latest
-                    '''
-                }
+                sh 'docker push ${IMAGE_NAME}:${IMAGE_TAG}'
             }
         }
     }
-
     post {
         always {
-            echo "Pipeline finished: ${currentBuild.currentResult}"
-        }
-
-        success {
-            emailext(
-                subject: "✅ Jenkins Build Success: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build completed successfully.\nCheck the job: ${env.BUILD_URL}",
-                to: "jacksongeorgeg87@gmail.com"
-            )
-        }
-
-        failure {
-            emailext(
-                subject: "❌ Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "The build failed. Please review logs: ${env.BUILD_URL}",
-                to: "jacksongeorgeg87@gmail.com"
+            emailext (
+                subject: "Jenkins Build ${env.BUILD_NUMBER} - ${currentBuild.currentResult}",
+                body: """Build ${env.BUILD_NUMBER} finished with status: ${currentBuild.currentResult}.
+                         Check console output at ${env.BUILD_URL}""",
+                to: 'jacksongeorge770@gmail.com',
+                attachLog: true
             )
         }
     }
-}
 }
