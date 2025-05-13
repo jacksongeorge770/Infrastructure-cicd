@@ -117,6 +117,11 @@ resource "aws_instance" "jenkin_instance" {
               # Start Jenkins
               sudo systemctl enable jenkins
               sudo systemctl start jenkins
+
+            apt-get update
+            apt-get install -y docker.io
+            systemctl start docker
+            systemctl enable docker
               EOF
 
   tags = {
