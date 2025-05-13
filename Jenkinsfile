@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git credentialsId: 'git-cred', url: 'https://github.com/jacksongeorge770/cicd-pipeline.git
+                git credentialsId: 'git-cred', url: 'https://github.com/jacksongeorge770/cicd-pipeline.git'
         }
 
         stage('Build Docker Image') {
