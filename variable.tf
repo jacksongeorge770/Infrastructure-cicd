@@ -6,7 +6,6 @@ variable "region" {
 variable "ami_id" {
   description = "Packer-built AMI ID"
   type        = string
-  ami-0022c272100eb016c
 }
 
 variable "jenkins_admin_password" {

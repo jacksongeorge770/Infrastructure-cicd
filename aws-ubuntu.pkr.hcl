@@ -13,13 +13,11 @@ variable "region" {
 }
 
 source "amazon-ebs" "ubuntu" {
-  ami_name      = "jenkin-ami"
+  ami_name      = "latest-jenkin-packer"
   instance_type = "t2.medium"
   region        = var.region
-
-
-  source_ami   = "ami-08355844f8bc94f55"
-  ssh_username = "ubuntu"
+  source_ami    = "ami-08355844f8bc94f55"
+  ssh_username  = "ubuntu"
 }
 
 build {
@@ -30,19 +28,12 @@ build {
     inline = [
       "sudo apt-get update -y",
       "sudo apt-get install -y openjdk-17-jdk",
-      
+
       "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
       "echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
       "sudo apt-get update -y",
       "sudo apt-get install -y jenkins",
       "sudo systemctl enable jenkins",
-
-      # Disable setup wizard
-      "echo 'JAVA_ARGS=\"-Djenkins.install.runSetupWizard=false\"' | sudo tee /etc/default/jenkins",
-      "sudo systemctl daemon-reexec",
-      "sudo systemctl restart jenkins",
-      "sudo systemctl enable jenkins",
-
 
 
       "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
