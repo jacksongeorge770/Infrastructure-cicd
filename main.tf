@@ -9,13 +9,11 @@ terraform {
       version = "~> 3.2"
     }
     jenkins = {
-      source  = "taiidani/jenkins" # Correct provider source
+      source  = "taiidani/jenkins"
       version = "~> 0.5.0"
     }
   }
 }
-
-
 
 provider "aws" {
   region = var.region
@@ -34,19 +32,12 @@ resource "aws_security_group" "jenkins_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # SSH
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 8080
     to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # Jenkins UI
-  }
-
-  ingress {
-    from_port   = 8000
-    to_port     = 8000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -55,78 +46,20 @@ resource "aws_security_group" "jenkins_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"] # allow all outbound
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 resource "aws_instance" "jenkins" {
-  ami               = "062949cfb8b984e65"
+  ami               = "062949cfb8b984e65"  # Your custom AMI
   instance_type     = "t2.medium"
   security_groups   = [aws_security_group.jenkins_sg.name]
   key_name          = "cicd"
-user_data = <<-EOF
-  #!/bin/bash
 
-  JENKINS_URL="http://localhost:8080"
-  ADMIN_PASSWORD=$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
-
-  # Wait for Jenkins to be ready
-  while ! curl -s $JENKINS_URL/login > /dev/null; do
-    echo "Waiting for Jenkins to be ready..."
-    sleep 10
-  done
-
-  # Download Jenkins CLI
-  wget $JENKINS_URL/jnlpJars/jenkins-cli.jar -P /tmp
-  JENKINS_CLI="/tmp/jenkins-cli.jar"
-
-  # Install plugins
-  PLUGINS="configuration-as-code git workflow-aggregator credentials docker-plugin blueocean pipeline-github-lib"
-  for plugin in $PLUGINS; do
-    java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD install-plugin $plugin
-  done
-
-  # Create GitHub credentials
-  cat <<EOT > /tmp/github-credentials.xml
-  <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-    <scope>GLOBAL</scope>
-    <id>github-credentials</id>
-    <description>GitHub access token</description>
-    <username>jacksongeorge770</username>
-    <password>${var.github_token}</password>
-  </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-  EOT
-  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD create-credentials-by-xml system::system::jenkins _ < /tmp/github-credentials.xml
-
-  # Create DockerHub credentials
-  cat <<EOT > /tmp/dockerhub-credentials.xml
-  <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-    <scope>GLOBAL</scope>
-    <id>dockerhub-credentials</id>
-    <description>Docker Hub credentials</description>
-    <username>${var.dockerhub_username}</username>
-    <password>${var.dockerhub_password}</password>
-  </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-  EOT
-  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD create-credentials-by-xml system::system::jenkins _ < /tmp/dockerhub-credentials.xml
-
-  # Configure admin user (using groovy script to update admin account)
-  cat <<EOT > /tmp/update-admin.groovy
-  import hudson.model.User
-  import hudson.security.HudsonPrivateSecurityRealm
-
-  def user = User.get('admin', true)
-  user.setFullName('jackson george')
-  user.addProperty(new hudson.security.HudsonPrivateSecurityRealm.Details('${var.jenkins_admin_password}', 'admin@example.com'))
-  user.save()
-  EOT
-  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD groovy /tmp/update-admin.groovy
-
-  # Clean up temporary files
-  rm -f /tmp/github-credentials.xml /tmp/dockerhub-credentials.xml /tmp/update-admin.groovy
-
-  # Restart Jenkins to apply changes
-  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD safe-restart
+  user_data = <<-EOF
+    #!/bin/bash
+    # Simple user_data: Jenkins installs itself by default in this AMI or install manually if needed
+    # You can add plugin installation here if you want to automate that part later.
   EOF
 
   tags = {
@@ -134,7 +67,6 @@ user_data = <<-EOF
   }
 }
 
- 
 resource "null_resource" "wait_for_jenkins" {
   depends_on = [aws_instance.jenkins]
 
@@ -154,8 +86,6 @@ resource "null_resource" "get_jenkins_password" {
   }
 }
 
-
-
 data "local_file" "jenkins_password" {
   depends_on = [null_resource.get_jenkins_password]
   filename   = "${path.module}/jenkins_initial_password.txt"
@@ -166,38 +96,7 @@ provider "jenkins" {
   username   = "admin"
   password   = trimspace(data.local_file.jenkins_password.content)
 }
-resource "jenkins_credential" "github" {
-  id          = "github-credentials"
-  name        = "github-credentials"
-  username    = "jacksongeorge770"
-  password    = var.github_token
-  description = "GitHub access token"
-  scope       = "GLOBAL"
-}
 
-resource "jenkins_credential" "dockerhub" {
-  id          = "dockerhub-credentials"
-  name        = "dockerhub-credentials"
-  username    = var.dockerhub_username
-  password    = var.dockerhub_password
-  description = "Docker Hub credentials"
-  scope       = "GLOBAL"
-}
-
-resource "jenkins_user" "admin" {
-  depends_on = [null_resource.get_jenkins_password]
-  name       = "admin"
-  password   = var.jenkins_admin_password
-  email      = "admin@example.com"
-  full_name  = "jackson george"
-}
-
-resource "jenkins_job" "golang_cicd" {
-  name       = "golang-docker-build"
-  config_xml = file("${path.module}/jenkins-job.xml")
-
-  depends_on = [
-    jenkins_credential.github,
-    jenkins_credential.dockerhub
-  ]
-}
+# resource "jenkins_script" "create_golang_job" {
+#   script = file("${path.module}/create_golang_job.groovy")
+# }
