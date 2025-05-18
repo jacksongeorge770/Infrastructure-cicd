@@ -1,0 +1,23 @@
+<flow-definition plugin="workflow-job@2.40">
+  <description>Build and Dockerize Golang App</description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@4.10.0">
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>https://github.com/jacksongeorge770/Terraform-Automation.git</url> <!-- ✅ your Repo A -->
+          <credentialsId>github-credentials</credentialsId> <!-- ✅ matches Terraform credential -->
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/main</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+    </scm>
+    <scriptPath>Jenkinsfile</scriptPath> <!-- ✅ Repo A must have Jenkinsfile -->
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+</flow-definition>

@@ -3,19 +3,8 @@ provider "aws" {
   region  = "ca-central-1"
 }
 
-provider "aws" {
-  region = "ca-central-1"
-}
-
-
-provider "jenkins" {
-  server_url = "http://${aws_instance.jenkins.public_ip}:8080"
-  username   = "admin"
-  password   = var.jenkins_admin_password
-}
-
 resource "aws_instance" "jenkins" {
-  ami               = "062949cfb8b984e65"
+  ami               = "062949cfb8b984e65" //packer
   instance_type     = "t2.medium"
   security_groups = [aws_security_group.jenkins_sg.name] # NOTE: plural and list
   key_name          = "cicd"
@@ -90,6 +79,14 @@ resource "null_resource" "wait_for_jenkins" {
   }
 }
 
+resource "jenkins_user" "admin" {
+  name     = "admin"
+  password = var.jenkins_admin_password
+  email    = "admin@example.com"
+  full_name = "jackson george"
+}
+
+
 provider "jenkins" {
   depends_on = [null_resource.wait_for_jenkins]
   server_url = "http://${aws_instance.jenkins.public_ip}:8080"
@@ -99,9 +96,31 @@ provider "jenkins" {
 
 
 
+resource "null_resource" "get_jenkins_password" {
+  depends_on = [aws_instance.jenkins]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${aws_instance.jenkins.public_ip} \
+      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" > jenkins_admin_password.txt
+    EOT
+  }
+}
+
+output "jenkins_initial_admin_password" {
+  value = file("jenkins_admin_password.txt")
+  sensitive = true
+}
 
 
 
+resource "jenkins_job" "golang-cicd" {
+  name       = "golang-docker-build"
+  config_xml = file("${path.module}/jenkins-job.xml")
 
-
+  depends_on = [
+    jenkins_credential.github,
+    jenkins_credential.dockerhub
+  ]
+}
 
