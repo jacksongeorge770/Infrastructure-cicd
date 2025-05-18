@@ -51,7 +51,7 @@ resource "aws_security_group" "jenkins_sg" {
 }
 
 resource "aws_instance" "jenkins" {
-  ami               = "062949cfb8b984e65"  # Your custom AMI
+  ami               = "ami-062949cfb8b984e65"  
   instance_type     = "t2.medium"
   security_groups   = [aws_security_group.jenkins_sg.name]
   key_name          = "cicd"
