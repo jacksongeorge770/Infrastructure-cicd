@@ -1,14 +1,11 @@
 name: Terraform Manual Trigger
 
 on:
-  workflow_dispatch:  
+  workflow_dispatch:
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./terraform  
 
     steps:
       - name: Checkout Code
@@ -31,6 +28,18 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan
+        env:
+          TF_VAR_ami_id: ${{ secrets.AMI_ID }}
+          TF_VAR_jenkins_admin_password: ${{ secrets.JENKINS_ADMIN_PASSWORD }}
+          TF_VAR_github_token: ${{ secrets.TOKEN }}
+          TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        env:
+          TF_VAR_ami_id: ${{ secrets.AMI_ID }}
+          TF_VAR_jenkins_admin_password: ${{ secrets.JENKINS_ADMIN_PASSWORD }}
+          TF_VAR_github_token: ${{ secrets.TOKEN }}
+          TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
