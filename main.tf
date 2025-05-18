@@ -60,14 +60,13 @@ resource "aws_security_group" "jenkins_sg" {
 }
 
 resource "aws_instance" "jenkins" {
-  ami               = var.ami_id
+  ami               = "062949cfb8b984e65"
   instance_type     = "t2.medium"
   security_groups   = [aws_security_group.jenkins_sg.name]
   key_name          = "cicd"
 user_data = <<-EOF
   #!/bin/bash
 
-  JENKINS_CLI="/usr/lib/jenkins/jenkins-cli.jar"
   JENKINS_URL="http://localhost:8080"
   ADMIN_PASSWORD=$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
 
@@ -77,24 +76,65 @@ user_data = <<-EOF
     sleep 10
   done
 
+  # Download Jenkins CLI
   wget $JENKINS_URL/jnlpJars/jenkins-cli.jar -P /tmp
+  JENKINS_CLI="/tmp/jenkins-cli.jar"
 
+  # Install plugins
   PLUGINS="configuration-as-code git workflow-aggregator credentials docker-plugin blueocean pipeline-github-lib"
-
   for plugin in $PLUGINS; do
-    java -jar /tmp/jenkins-cli.jar -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD install-plugin $plugin
+    java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD install-plugin $plugin
   done
 
-  java -jar /tmp/jenkins-cli.jar -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD safe-restart
+  # Create GitHub credentials
+  cat <<EOT > /tmp/github-credentials.xml
+  <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+    <scope>GLOBAL</scope>
+    <id>github-credentials</id>
+    <description>GitHub access token</description>
+    <username>jacksongeorge770</username>
+    <password>${var.github_token}</password>
+  </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+  EOT
+  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD create-credentials-by-xml system::system::jenkins _ < /tmp/github-credentials.xml
 
-EOF
+  # Create DockerHub credentials
+  cat <<EOT > /tmp/dockerhub-credentials.xml
+  <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+    <scope>GLOBAL</scope>
+    <id>dockerhub-credentials</id>
+    <description>Docker Hub credentials</description>
+    <username>${var.dockerhub_username}</username>
+    <password>${var.dockerhub_password}</password>
+  </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+  EOT
+  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD create-credentials-by-xml system::system::jenkins _ < /tmp/dockerhub-credentials.xml
 
+  # Configure admin user (using groovy script to update admin account)
+  cat <<EOT > /tmp/update-admin.groovy
+  import hudson.model.User
+  import hudson.security.HudsonPrivateSecurityRealm
+
+  def user = User.get('admin', true)
+  user.setFullName('jackson george')
+  user.addProperty(new hudson.security.HudsonPrivateSecurityRealm.Details('${var.jenkins_admin_password}', 'admin@example.com'))
+  user.save()
+  EOT
+  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD groovy /tmp/update-admin.groovy
+
+  # Clean up temporary files
+  rm -f /tmp/github-credentials.xml /tmp/dockerhub-credentials.xml /tmp/update-admin.groovy
+
+  # Restart Jenkins to apply changes
+  java -jar $JENKINS_CLI -s $JENKINS_URL -auth admin:$ADMIN_PASSWORD safe-restart
+  EOF
 
   tags = {
     Name = "Jenkins-Server"
   }
 }
 
+ 
 resource "null_resource" "wait_for_jenkins" {
   depends_on = [aws_instance.jenkins]
 
