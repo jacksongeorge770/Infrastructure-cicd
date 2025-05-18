@@ -53,7 +53,7 @@ resource "aws_security_group" "jenkins_sg2" {
 resource "aws_instance" "jenkins" {
   ami               = "ami-062949cfb8b984e65"  
   instance_type     = "t2.medium"
-  security_groups   = [aws_security_group.jenkins_sg.name]
+  security_groups   = [aws_security_group.jenkins_sg2.name]
   key_name          = "cicd"
 
   user_data = <<-EOF
