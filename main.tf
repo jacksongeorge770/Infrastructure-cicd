@@ -114,18 +114,18 @@ resource "null_resource" "get_jenkins_password" {
   }
 }
 
-output "jenkins_initial_admin_password" {
-  value     = file("jenkins_initial_password.txt")
-  sensitive = true
+
+
+data "local_file" "jenkins_password" {
+  depends_on = [null_resource.get_jenkins_password]
+  filename   = "${path.module}/jenkins_initial_password.txt"
 }
 
 provider "jenkins" {
-  
   server_url = "http://${aws_instance.jenkins.public_ip}:8080"
   username   = "admin"
-  password   = trimspace(file("jenkins_initial_password.txt"))
+  password   = trimspace(data.local_file.jenkins_password.content)
 }
-
 resource "jenkins_credential" "github" {
   id          = "github-credentials"
   name        = "github-credentials"
