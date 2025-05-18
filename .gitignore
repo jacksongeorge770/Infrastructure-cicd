@@ -8,21 +8,23 @@
 # Crash log files
 crash.log
 
-# Plan output
-*.tfplan
+# Exclude .tfvars files that may contain sensitive data
+*.tfvars
+*.tfvars.json
 
-# Override files
+# Ignore override files as they are usually local changes
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 
-# CLI configuration files
-.terraformrc
-terraform.rc
+# Terraform plan files
+*.tfplan
 
-# Sensitive variable files (you might store secrets here)
-*.tfvars
-*.tfvars.json
+# Terraform lock file (can ignore if managing manually)
 .terraform.lock.hcl
-jenkin_install.sh
+
+
+
+variables.tf
+buld.log

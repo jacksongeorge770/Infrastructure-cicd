@@ -1,0 +1,14 @@
+1747457336,,ui,say,==> jenkins-docker-build.amazon-ebs.ubuntu: Prevalidating any provided VPC information
+1747457336,,ui,say,==> jenkins-docker-build.amazon-ebs.ubuntu: Prevalidating AMI Name: jenkin-ami-1747457336
+1747457337,,ui,message,    jenkins-docker-build.amazon-ebs.ubuntu: Found Image ID: ami-08355844f8bc94f55
+1747457337,,ui,say,==> jenkins-docker-build.amazon-ebs.ubuntu: Creating temporary keypair: packer_68281538-cee3-c48e-2f62-2cef1b0bc38e
+1747457337,,ui,say,==> jenkins-docker-build.amazon-ebs.ubuntu: Creating temporary security group for this instance: packer_68281539-6904-da62-d414-49e527812136
+1747457337,,ui,error,==> jenkins-docker-build.amazon-ebs.ubuntu: VPCIdNotSpecified: No default VPC for this user\n==> jenkins-docker-build.amazon-ebs.ubuntu: 	status code: 400%!(PACKER_COMMA) request id: 4b3db5e5-6f77-44e5-9d1a-5b339d9b6f4d
+1747457337,,ui,say,==> jenkins-docker-build.amazon-ebs.ubuntu: Deleting temporary keypair...
+1747457337,,ui,error,Build 'jenkins-docker-build.amazon-ebs.ubuntu' errored after 1 second 55 milliseconds: VPCIdNotSpecified: No default VPC for this user\n	status code: 400%!(PACKER_COMMA) request id: 4b3db5e5-6f77-44e5-9d1a-5b339d9b6f4d
+1747457337,,ui,say,\n==> Wait completed after 1 second 55 milliseconds
+1747457337,,error-count,1
+1747457337,,ui,error,\n==> Some builds didn't complete successfully and had errors:
+1747457337,jenkins-docker-build.amazon-ebs.ubuntu,error,VPCIdNotSpecified: No default VPC for this user\n	status code: 400%!(PACKER_COMMA) request id: 4b3db5e5-6f77-44e5-9d1a-5b339d9b6f4d
+1747457337,,ui,error,--> jenkins-docker-build.amazon-ebs.ubuntu: VPCIdNotSpecified: No default VPC for this user\n	status code: 400%!(PACKER_COMMA) request id: 4b3db5e5-6f77-44e5-9d1a-5b339d9b6f4d
+1747457337,,ui,say,\n==> Builds finished but no artifacts were created.
