@@ -91,7 +91,7 @@ resource "aws_instance" "terraform" {
   sudo apt upgrade -y
 
   # Install Java (required for Jenkins)
-  sudo apt install -y fontconfig openjdk-17-jdk
+  sudo apt install openjdk-17-jdk -y 
 
   # Add Jenkins repo and key
   curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
