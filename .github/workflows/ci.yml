@@ -68,34 +68,34 @@ jobs:
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
           chmod 400 ~/.ssh/cicd.pem
 
-      - name: Get Jenkins Public IP from Terraform output
-        id: get_ip
-        run: echo "::set-output name=jenkins_ip::$(terraform output -raw jenkins_public_ip)"
+      # - name: Get Jenkins Public IP from Terraform output
+      #   id: get_ip
+      #   run: echo "::set-output name=jenkins_ip::$(terraform output -raw jenkins_public_ip)"
 
-      - name: Fetch Jenkins Admin Password
-        id: get_password
-        run: |
-          PASSWORD=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${{ steps.get_ip.outputs.jenkins_ip }} "sudo cat /var/lib/jenkins/secrets/initialAdminPassword")
-          echo "Jenkins Admin Password: $PASSWORD"
-          echo "::set-output name=jenkins_password::$PASSWORD"
+      # - name: Fetch Jenkins Admin Password
+      #   id: get_password
+      #   run: |
+      #     PASSWORD=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${{ steps.get_ip.outputs.jenkins_ip }} "sudo cat /var/lib/jenkins/secrets/initialAdminPassword")
+      #     echo "Jenkins Admin Password: $PASSWORD"
+      #     echo "::set-output name=jenkins_password::$PASSWORD"
 
-      - name: Use Jenkins Password
-        run: echo "Jenkins password is ${{ steps.get_password.outputs.jenkins_password }}"
+      # - name: Use Jenkins Password
+      #   run: echo "Jenkins password is ${{ steps.get_password.outputs.jenkins_password }}"
 
-      - name: Connect to EC2 via SSH and run command
-        env:
-          PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          HOSTNAME: ${{ steps.get_ip.outputs.jenkins_ip }}
-          USER_NAME: ubuntu
-        run: |
-          echo "$PRIVATE_KEY" > private_key
-          chmod 600 private_key
+      # - name: Connect to EC2 via SSH and run command
+      #   env:
+      #     PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      #     HOSTNAME: ${{ steps.get_ip.outputs.jenkins_ip }}
+      #     USER_NAME: ubuntu
+      #   run: |
+      #     echo "$PRIVATE_KEY" > private_key
+      #     chmod 600 private_key
 
-          ssh -o StrictHostKeyChecking=no -i private_key $USER_NAME@$HOSTNAME "
-            echo '✅ SSH connection successful!'
-            # Run your remote commands here
-            uptime
-          "
+      #     ssh -o StrictHostKeyChecking=no -i private_key $USER_NAME@$HOSTNAME "
+      #       echo '✅ SSH connection successful!'
+      #       # Run your remote commands here
+      #       uptime
+      #     "
       - name: Trigger Jenkins cicd Pipeline
         env:
          JENKINS_URL: "http://3.96.128.130:8080"
