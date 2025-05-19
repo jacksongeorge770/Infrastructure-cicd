@@ -51,7 +51,7 @@ jobs:
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
           TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
-          
+
       - name: Terraform Apply
         run: terraform apply -auto-approve
         env:
@@ -61,23 +61,31 @@ jobs:
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
           TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
+
       - name: Setup SSH Key
         run: |
-            mkdir -p ~/.ssh
-            echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
-            chmod 600 ~/.ssh/cicd.pem
-  
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
+          chmod 600 ~/.ssh/cicd.pem
+
       - name: Get Jenkins Public IP from Terraform output
         id: get_ip
-        run: echo "::set-output name=jenkins_ip::$(terraform output -raw jenkins_public_ip)"
-  
+        run: echo "jenkins_ip=$(terraform output -raw jenkins_public_ip)" >> $GITHUB_OUTPUT
+
       - name: Fetch Jenkins Admin Password
         id: get_password
         run: |
-            PASSWORD=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${{ steps.get_ip.outputs.jenkins_ip }} "sudo cat /var/lib/jenkins/secrets/initialAdminPassword")
-            echo "Jenkins Admin Password: $PASSWORD"
-            echo "::set-output name=jenkins_password::$PASSWORD"
-  
+          for i in {1..10}; do
+            PASSWORD=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${{ steps.get_ip.outputs.jenkins_ip }} "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" 2>/dev/null)
+            if [[ -n "$PASSWORD" ]]; then
+              echo "Got Jenkins password"
+              break
+            else
+              echo "Waiting for Jenkins to be ready..."
+              sleep 10
+            fi
+          done
+          echo "jenkins_password=$PASSWORD" >> $GITHUB_OUTPUT
+
       - name: Use Jenkins Password
         run: echo "Jenkins password is ${{ steps.get_password.outputs.jenkins_password }}"
-       
