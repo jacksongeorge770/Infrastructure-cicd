@@ -142,7 +142,7 @@ resource "null_resource" "get_jenkins_password" {
   provisioner "local-exec" {
     command = <<EOT
       sleep 30  # Give Jenkins enough time to initialize
-      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${aws_instance.terraoform.public_ip} \
+      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${aws_instance.terraform.public_ip} \
       "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" > jenkins_initial_password.txt
     EOT
   }
