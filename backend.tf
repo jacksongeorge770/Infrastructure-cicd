@@ -1,6 +1,6 @@
 # Defining the S3 bucket for Terraform state
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "terraform-state-store" # Replace with a unique bucket name
+  bucket = "jackson-terraform-ca-central1" # Replace with a unique bucket name
 
   tags = {
     Name = "TerraformStateBucket"

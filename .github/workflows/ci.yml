@@ -27,7 +27,7 @@ jobs:
         run: |
             # Create S3 bucket if not exists
             aws s3api create-bucket \
-              --bucket my-terraform-state-bucket \
+              --bucket jackson-terraform-ca-central1 \
               --region ca-central-1 \
               --create-bucket-configuration LocationConstraint=ca-central-1 || true
         

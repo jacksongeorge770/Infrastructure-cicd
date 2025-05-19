@@ -15,7 +15,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "my-terraform-state-bucket"
+    bucket         = "jackson-terraform-ca-central1"
     key            = "jenkins/terraform.tfstate"
     region         = "ca-central-1"
     dynamodb_table = "terraform-locks"
