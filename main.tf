@@ -137,3 +137,13 @@ output "jenkins_public_ip" {
   description = "Public IP of the Jenkins server"
   value       = aws_instance.terraform.public_ip
 }
+
+resource "null_resource" "get_jenkins_password" {
+  provisioner "local-exec" {
+    command = <<EOT
+      sleep 30  # Give Jenkins enough time to initialize
+      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ubuntu@${aws_instance.jenkins.public_ip} \
+      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" > jenkins_initial_password.txt
+    EOT
+  }
+}
