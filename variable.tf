@@ -30,3 +30,7 @@ variable "dockerhub_password" {
   type        = string
   sensitive   = true
 }
+
+variable "github_repository" {
+  description = "GitHub repository name for Repo A (e.g., jacksongeorge770/Infrastructure-cicd)"
+}
