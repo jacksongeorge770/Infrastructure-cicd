@@ -36,7 +36,7 @@ data "aws_vpc" "default" {
 }
 
 resource "aws_security_group" "cicd" {
-
+  name = "cicd"
   description = "Allow Jenkins, SSH, and HTTP access"
   vpc_id      = data.aws_vpc.default.id
 
@@ -79,7 +79,7 @@ resource "aws_security_group" "cicd" {
 resource "aws_instance" "jenkins" {
   ami               = var.ami_id
   instance_type     = "t2.medium"
-  security_groups   = [aws_security_group.jenkins_sg3.name]
+  security_groups   = [aws_security_group.cicd.name]
   key_name          = "cicd"
 
   user_data = <<-EOF
