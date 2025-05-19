@@ -54,6 +54,7 @@ jobs:
           TF_VAR_github_token: ${{ secrets.TOKEN }}
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
@@ -63,3 +64,4 @@ jobs:
           TF_VAR_github_token: ${{ secrets.TOKEN }}
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
