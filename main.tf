@@ -35,8 +35,8 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_security_group" "jenkins_sg3" {
-  name        = "jenkins-sg"
+resource "aws_security_group" "cicd" {
+
   description = "Allow Jenkins, SSH, and HTTP access"
   vpc_id      = data.aws_vpc.default.id
 
