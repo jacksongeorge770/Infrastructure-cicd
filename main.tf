@@ -131,59 +131,6 @@ EOF
     Name = "Jenkins-Server"
   }
 }
-resource "null_resource" "wait_for_jenkins" {
-  depends_on = [aws_instance.terraform]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      until curl -s --connect-timeout 5 http://${aws_instance.terraform.public_ip}:8080; do
-        echo "Waiting for Jenkins to start..."
-        sleep 10
-      done
-    EOT
-  }
-}
-
-resource "null_resource" "get_jenkins_password" {
-  depends_on = [null_resource.wait_for_jenkins]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${aws_instance.terraform.public_ip} \
-      "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" > jenkins_initial_password.txt
-    EOT
-  }
-}
-
-data "local_file" "jenkins_password" {
-  depends_on = [null_resource.get_jenkins_password]
-  filename   = "${path.module}/jenkins_initial_password.txt"
-}
-
-resource "null_resource" "create_jenkins_pipeline" {
-  depends_on = [data.local_file.jenkins_password, aws_instance.terraform]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      curl -X POST "http://${aws_instance.terraform.public_ip}:8080/createItem?name=golang-app-pipeline" \
-        --user admin:${trimspace(data.local_file.jenkins_password.content)} \
-        -H "Content-Type: application/xml" \
-        --data-binary "@${path.module}/jenkins.xml"
-    EOT
-  }
-}
-
-resource "null_resource" "trigger_jenkins_pipeline" {
-  depends_on = [null_resource.create_jenkins_pipeline]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      sleep 10
-      curl -X POST "http://${aws_instance.terraform.public_ip}:8080/job/golang-app-pipeline/build" \
-        --user admin:${trimspace(data.local_file.jenkins_password.content)}
-    EOT
-  }
-}
 
 
 output "jenkins_public_ip" {
