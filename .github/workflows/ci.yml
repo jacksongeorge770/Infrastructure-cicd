@@ -96,3 +96,13 @@ jobs:
             # Run your remote commands here
             uptime
           "
+      - name: Trigger Jenkins cicd Pipeline
+        env:
+         JENKINS_URL: "http://3.96.128.130:8080"
+         JENKINS_USER: ${{ secrets.JENKINS_USER }}
+         JENKINS_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+         PIPELINE_NAME: "cicd"
+        run: |
+         curl -X POST "${JENKINS_URL}/job/${PIPELINE_NAME}/build?token=cicd-trigger-token" \
+         --user "${JENKINS_USER}:${JENKINS_TOKEN}" \
+         -H "Content-Type: application/json"
