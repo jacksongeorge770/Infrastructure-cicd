@@ -77,33 +77,44 @@ resource "aws_security_group" "cicd" {
 }
 
 resource "aws_instance" "terraform" {
-  ami             = "ami-062949cfb8b984e65"
+  ami             = "ami-048d2b60a58148709" # Ubuntu 22.04 LTS (example, confirm region)
   instance_type   = "t2.medium"
   security_groups = [aws_security_group.cicd.name]
   key_name        = "cicd"
 
   user_data = <<-EOF
     #!/bin/bash
-    sudo yum update -y
-    sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-    sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
-    sudo yum install -y java-11-openjdk jenkins
-    sudo systemctl start jenkins
+    sudo apt update -y
+    sudo apt upgrade -y
+
+    # Install Java
+    sudo apt install -y openjdk-11-jdk
+
+    # Add Jenkins repository and install Jenkins
+    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
+      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+    echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+      https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+      /etc/apt/sources.list.d/jenkins.list > /dev/null
+    sudo apt update -y
+    sudo apt install -y jenkins
+
     sudo systemctl enable jenkins
+    sudo systemctl start jenkins
 
     # Install Docker
-    sudo yum install -y docker
+    sudo apt install -y docker.io
     sudo systemctl start docker
     sudo systemctl enable docker
-    sudo usermod -aG docker ec2-user
+    sudo usermod -aG docker ubuntu
     sudo usermod -aG docker jenkins
 
     # Install Go
-    sudo yum install -y golang
+    sudo apt install -y golang-go
 
-    # Install Jenkins plugins
+    # Install Jenkins Plugin Manager
     sudo curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o /tmp/jenkins-plugin-manager.jar
-    sudo java -jar /tmp/jenkins-plugin-manager.jar --war /usr/lib/jenkins/jenkins.war --plugin-download-directory /var/lib/jenkins/plugins --plugin-file /dev/stdin <<PLUGINS
+    sudo java -jar /tmp/jenkins-plugin-manager.jar --war /usr/share/jenkins/jenkins.war --plugin-download-directory /var/lib/jenkins/plugins --plugin-file /dev/stdin <<PLUGINS
     git
     github
     github-branch-source
@@ -113,11 +124,10 @@ resource "aws_instance" "terraform" {
     credentials
     PLUGINS
     sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins
-    sudo systemctl restart jenkins
 
     # Configure Jenkins credentials for Docker Hub
     sudo mkdir -p /var/lib/jenkins/credentials
-    cat <<CRED > /var/lib/jenkins/credentials/docker-hub-credentials.xml
+    cat <<CRED | sudo tee /var/lib/jenkins/credentials/docker-hub-credentials.xml > /dev/null
     <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
       <id>docker-hub-credentials</id>
       <description>Docker Hub Credentials</description>
@@ -129,7 +139,7 @@ resource "aws_instance" "terraform" {
 
     # Configure GitHub token for webhook
     sudo mkdir -p /var/lib/jenkins
-    cat <<CONFIG > /var/lib/jenkins/config.xml
+    cat <<CONFIG | sudo tee /var/lib/jenkins/config.xml > /dev/null
     <?xml version='1.1' encoding='UTF-8'?>
     <hudson>
       <version>2.426.1</version>
@@ -148,6 +158,7 @@ resource "aws_instance" "terraform" {
     </hudson>
     CONFIG
     sudo chown jenkins:jenkins /var/lib/jenkins/config.xml
+
     sudo systemctl restart jenkins
   EOF
 
@@ -155,7 +166,6 @@ resource "aws_instance" "terraform" {
     Name = "Jenkins-Server"
   }
 }
-
 resource "null_resource" "wait_for_jenkins" {
   depends_on = [aws_instance.terraform]
 
