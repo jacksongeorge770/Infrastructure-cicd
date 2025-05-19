@@ -36,7 +36,7 @@ data "aws_vpc" "default" {
 }
 
 resource "aws_security_group" "cicd" {
-  name = "cicd"
+  name        = "cicd"
   description = "Allow Jenkins, SSH, and HTTP access"
   vpc_id      = data.aws_vpc.default.id
 
@@ -77,10 +77,10 @@ resource "aws_security_group" "cicd" {
 }
 
 resource "aws_instance" "terraform" {
-  ami               = var.ami_id
-  instance_type     = "t2.medium"
-  security_groups   = [aws_security_group.cicd.name]
-  key_name          = "cicd"
+  ami             = var.ami_id
+  instance_type   = "t2.medium"
+  security_groups = [aws_security_group.cicd.name]
+  key_name        = "cicd"
 
   user_data = <<-EOF
     #!/bin/bash
@@ -157,11 +157,11 @@ resource "aws_instance" "terraform" {
 }
 
 resource "null_resource" "wait_for_jenkins" {
-  depends_on = [aws_instance.jenkins]
+  depends_on = [aws_instance.terraform]
 
   provisioner "local-exec" {
     command = <<EOT
-      until curl -s --connect-timeout 5 http://${aws_instance.jenkins.public_ip}:8080; do
+      until curl -s --connect-timeout 5 http://${aws_instance.terraform.public_ip}:8080; do
         echo "Waiting for Jenkins to start..."
         sleep 10
       done
@@ -174,7 +174,7 @@ resource "null_resource" "get_jenkins_password" {
 
   provisioner "local-exec" {
     command = <<EOT
-      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${aws_instance.jenkins.public_ip} \
+      ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${aws_instance.terraform.public_ip} \
       "sudo cat /var/lib/jenkins/secrets/initialAdminPassword" > jenkins_initial_password.txt
     EOT
   }
@@ -186,11 +186,11 @@ data "local_file" "jenkins_password" {
 }
 
 resource "null_resource" "create_jenkins_pipeline" {
-  depends_on = [data.local_file.jenkins_password, aws_instance.jenkins]
+  depends_on = [data.local_file.jenkins_password, aws_instance.terraform]
 
   provisioner "local-exec" {
     command = <<EOT
-      curl -X POST "http://${aws_instance.jenkins.public_ip}:8080/createItem?name=golang-app-pipeline" \
+      curl -X POST "http://${aws_instance.terraform.public_ip}:8080/createItem?name=golang-app-pipeline" \
         --user admin:${trimspace(data.local_file.jenkins_password.content)} \
         -H "Content-Type: application/xml" \
         --data-binary "@${path.module}/jenkins.xml"
@@ -204,7 +204,7 @@ resource "null_resource" "trigger_jenkins_pipeline" {
   provisioner "local-exec" {
     command = <<EOT
       sleep 10
-      curl -X POST "http://${aws_instance.jenkins.public_ip}:8080/job/golang-app-pipeline/build" \
+      curl -X POST "http://${aws_instance.terraform.public_ip}:8080/job/golang-app-pipeline/build" \
         --user admin:${trimspace(data.local_file.jenkins_password.content)}
     EOT
   }
@@ -213,7 +213,7 @@ resource "null_resource" "trigger_jenkins_pipeline" {
 resource "github_repository_webhook" "jenkins_webhook" {
   repository = var.github_repository
   configuration {
-    url          = "http://${aws_instance.jenkins.public_ip}:8080/github-webhook/"
+    url          = "http://${aws_instance.terraform.public_ip}:8080/github-webhook/"
     content_type = "json"
     insecure_ssl = false
   }
@@ -222,5 +222,5 @@ resource "github_repository_webhook" "jenkins_webhook" {
 
 output "jenkins_public_ip" {
   description = "Public IP of the Jenkins server"
-  value       = aws_instance.jenkins.public_ip
+  value       = aws_instance.terraform.public_ip
 }
