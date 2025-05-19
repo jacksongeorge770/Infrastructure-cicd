@@ -51,14 +51,7 @@ jobs:
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
           TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
-
-      # ✅ SSH key setup must happen before Apply step
-      - name: Setup SSH Key
-        run: |
-         mkdir -p ~/.ssh
-         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
-         chmod 600 ~/.ssh/cicd.pem
-     
+          
       - name: Terraform Apply
         run: terraform apply -auto-approve
         env:
@@ -68,3 +61,23 @@ jobs:
           TF_VAR_dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           TF_VAR_dockerhub_password: ${{ secrets.DOCKERHUB_PASSWORD }}
           TF_VAR_github_repository: ${{ secrets.GIT_NAME }}
+      - name: Setup SSH Key
+        run: |
+            mkdir -p ~/.ssh
+            echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
+            chmod 600 ~/.ssh/cicd.pem
+  
+      - name: Get Jenkins Public IP from Terraform output
+        id: get_ip
+        run: echo "::set-output name=jenkins_ip::$(terraform output -raw jenkins_public_ip)"
+  
+      - name: Fetch Jenkins Admin Password
+        id: get_password
+        run: |
+            PASSWORD=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/cicd.pem ec2-user@${{ steps.get_ip.outputs.jenkins_ip }} "sudo cat /var/lib/jenkins/secrets/initialAdminPassword")
+            echo "Jenkins Admin Password: $PASSWORD"
+            echo "::set-output name=jenkins_password::$PASSWORD"
+  
+      - name: Use Jenkins Password
+        run: echo "Jenkins password is ${{ steps.get_password.outputs.jenkins_password }}"
+       
