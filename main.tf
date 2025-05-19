@@ -77,7 +77,7 @@ resource "aws_security_group" "cicd" {
 }
 
 resource "aws_instance" "terraform" {
-  ami             = var.ami_id
+  ami             = "ami-062949cfb8b984e65"
   instance_type   = "t2.medium"
   security_groups = [aws_security_group.cicd.name]
   key_name        = "cicd"
