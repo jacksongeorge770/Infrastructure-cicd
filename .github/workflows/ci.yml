@@ -55,10 +55,10 @@ jobs:
       # ✅ SSH key setup must happen before Apply step
       - name: Setup SSH Key
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/cicd.pem
-          chmod 600 ~/.ssh/cicd.pem
-
+         mkdir -p ~/.ssh
+         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/cicd.pem
+         chmod 600 ~/.ssh/cicd.pem
+     
       - name: Terraform Apply
         run: terraform apply -auto-approve
         env:
