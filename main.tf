@@ -76,7 +76,7 @@ resource "aws_security_group" "cicd" {
   }
 }
 
-resource "aws_instance" "jenkins" {
+resource "aws_instance" "terraform" {
   ami               = var.ami_id
   instance_type     = "t2.medium"
   security_groups   = [aws_security_group.cicd.name]
