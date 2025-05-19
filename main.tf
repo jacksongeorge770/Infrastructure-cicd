@@ -83,84 +83,49 @@ resource "aws_instance" "terraform" {
   key_name        = "cicd"
 
   user_data = <<-EOF
-    #!/bin/bash
-    sudo apt update -y
-    sudo apt upgrade -y
+  #!/bin/bash
+  set -e
 
-    # Install Java
-    sudo apt install -y openjdk-11-jdk
+  # Update system
+  sudo apt update -y
+  sudo apt upgrade -y
 
-    # Add Jenkins repository and install Jenkins
-    curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo tee \
-      /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-    echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-      https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-      /etc/apt/sources.list.d/jenkins.list > /dev/null
-    sudo apt update -y
-    sudo apt install -y jenkins
+  # Install Java (required for Jenkins)
+  sudo apt install -y fontconfig openjdk-17-jdk
 
-    sudo systemctl enable jenkins
-    sudo systemctl start jenkins
+  # Add Jenkins repo and key
+  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+    /usr/share/keyrings/jenkins-keyring.asc > /dev/null
 
-    # Install Docker
-    sudo apt install -y docker.io
-    sudo systemctl start docker
-    sudo systemctl enable docker
-    sudo usermod -aG docker ubuntu
-    sudo usermod -aG docker jenkins
+  echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+    https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+    /etc/apt/sources.list.d/jenkins.list > /dev/null
 
-    # Install Go
-    sudo apt install -y golang-go
+  # Install Jenkins
+  sudo apt update -y
+  sudo apt install -y jenkins
 
-    # Install Jenkins Plugin Manager
-    sudo curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o /tmp/jenkins-plugin-manager.jar
-    sudo java -jar /tmp/jenkins-plugin-manager.jar --war /usr/share/jenkins/jenkins.war --plugin-download-directory /var/lib/jenkins/plugins --plugin-file /dev/stdin <<PLUGINS
-    git
-    github
-    github-branch-source
-    docker-workflow
-    pipeline-stage-view
-    workflow-aggregator
-    credentials
-    PLUGINS
-    sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins
+  # Start and enable Jenkins
+  sudo systemctl daemon-reexec
+  sudo systemctl enable jenkins
+  sudo systemctl start jenkins
 
-    # Configure Jenkins credentials for Docker Hub
-    sudo mkdir -p /var/lib/jenkins/credentials
-    cat <<CRED | sudo tee /var/lib/jenkins/credentials/docker-hub-credentials.xml > /dev/null
-    <com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-      <id>docker-hub-credentials</id>
-      <description>Docker Hub Credentials</description>
-      <username>${var.dockerhub_username}</username>
-      <password>${var.dockerhub_password}</password>
-    </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
-    CRED
-    sudo chown jenkins:jenkins /var/lib/jenkins/credentials/docker-hub-credentials.xml
+  # Install Docker
+  sudo apt install -y docker.io
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  sudo usermod -aG docker ubuntu
+  sudo usermod -aG docker jenkins
 
-    # Configure GitHub token for webhook
-    sudo mkdir -p /var/lib/jenkins
-    cat <<CONFIG | sudo tee /var/lib/jenkins/config.xml > /dev/null
-    <?xml version='1.1' encoding='UTF-8'?>
-    <hudson>
-      <version>2.426.1</version>
-      <numExecutors>2</numExecutors>
-      <mode>NORMAL</mode>
-      <useSecurity>true</useSecurity>
-      <authorizationStrategy class="hudson.security.FullControlOnceLoggedInAuthorizationStrategy"/>
-      <securityRealm class="hudson.security.HudsonPrivateSecurityRealm"/>
-      <disableSignup>true</disableSignup>
-      <githubWebHookTokens>
-        <com.cloudbees.jenkins.plugins.github.webhook.WebHookToken>
-          <name>github-token</name>
-          <token>${var.github_token}</token>
-        </com.cloudbees.jenkins.plugins.github.webhook.WebHookToken>
-      </githubWebHookTokens>
-    </hudson>
-    CONFIG
-    sudo chown jenkins:jenkins /var/lib/jenkins/config.xml
+  # Install Go
+  sudo apt install -y golang-go
 
-    sudo systemctl restart jenkins
-  EOF
+  # Allow Jenkins to access Docker socket
+  sudo chmod 666 /var/run/docker.sock
+
+  # Final restart to ensure permissions apply
+  sudo systemctl restart jenkins
+EOF
 
   tags = {
     Name = "Jenkins-Server"
@@ -220,15 +185,6 @@ resource "null_resource" "trigger_jenkins_pipeline" {
   }
 }
 
-resource "github_repository_webhook" "jenkins_webhook" {
-  repository = var.github_repository
-  configuration {
-    url          = "http://${aws_instance.terraform.public_ip}:8080/github-webhook/"
-    content_type = "json"
-    insecure_ssl = false
-  }
-  events = ["push"]
-}
 
 output "jenkins_public_ip" {
   description = "Public IP of the Jenkins server"
