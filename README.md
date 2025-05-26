@@ -6,59 +6,73 @@ This project automates the end-to-end infrastructure provisioning and deployment
 
 ![Architecture](./assets/Terraform-2ndpro.drawio.png)
 
-🎯 Goal
-To create a CI/CD workflow that:
 
-Provisions infrastructure using Terraform
+## 🎯 Goal
 
-Uses a remote backend (S3 + DynamoDB) for secure state management
+To create a robust CI/CD workflow that:
 
-Triggers a Jenkins job that pulls pipeline logic from a separate repository and handles the deployment
+- Provisions infrastructure using **Terraform**
+- Utilizes a **remote backend (S3 + DynamoDB)** for secure state management
+- Triggers a **Jenkins job** that pulls deployment logic from a separate application repository
 
-🧱 Infrastructure Provisioning
-Provisioned using: Terraform
+---
 
-Resources created:
+## 🧱 Infrastructure Provisioning
 
-EC2 instance (to host Jenkins)
+Infrastructure is provisioned using **Terraform** and includes the following resources:
 
-S3 bucket (for remote Terraform state)
+- 🖥️ **EC2 Instance** — Hosts Jenkins
+- 📦 **S3 Bucket** — Stores remote Terraform state with versioning enabled
+- 🗃️ **DynamoDB Table** — Used for state locking to prevent concurrent runs
 
-DynamoDB table (for state locking)
+---
 
-🔁 CI/CD Workflow
-CI: GitHub Actions triggers Terraform apply automatically 
+## 🔁 CI/CD Workflow
 
-CD: GitHub Action then triggers Jenkins (via webhook or token)
+### Continuous Integration (CI)
 
-Jenkins: Reads a Jenkinsfile in this repo, and:
+- Triggered via **GitHub Actions**
+- Automatically runs `terraform apply` on push or merge to main
+- Uses the remote backend for state management
 
-Clones a separate app repository
+### Continuous Deployment (CD)
 
-Runs build/test/deploy pipeline
+- GitHub Actions sends a **webhook** or **API token trigger** to Jenkins
+- Jenkins:
+  - Pulls the pipeline logic from a `Jenkinsfile` in this repository
+  - Clones a **separate app repository**
+  - Executes build, test, and deploy stages
 
-🔐 State Management
-Backend: S3 bucket with versioning
+---
 
-Locking: DynamoDB table to prevent concurrent runs
+## 🔐 State Management
 
-🛠️ Technologies Used
-Terraform – Infrastructure as Code
+- 📁 **Backend:** S3 bucket with versioning to maintain Terraform state history
+- 🔒 **Locking:** DynamoDB table to prevent concurrent execution and ensure consistency
 
-GitHub Actions – CI and automation pipeline
+---
 
-AWS – EC2, S3, DynamoDB
+## 🛠️ Technologies Used
 
-Jenkins – CD and deployment automation
+| Tool            | Purpose                                |
+|-----------------|----------------------------------------|
+| Terraform       | Infrastructure as Code                 |
+| GitHub Actions  | Continuous Integration & automation    |
+| AWS EC2         | Host Jenkins CI/CD server              |
+| AWS S3          | Remote state backend for Terraform     |
+| AWS DynamoDB    | State locking for Terraform            |
+| Jenkins         | Continuous Deployment & pipeline logic |
 
-✅ Outcome
-Fully automated, version-controlled infrastructure and CI/CD pipeline mimicing real-world scenario
+---
 
-Secure remote state backend
+## ✅ Outcome
 
-Clean separation of responsibilities between provisioning (Terraform) and deployment (Jenkins)
+- Fully automated and version-controlled **CI/CD pipeline**
+- Secure and scalable **infrastructure provisioning**
+- Clean **separation of responsibilities** between Terraform and Jenkins
+- Realistic, production-like pipeline for DevOps practice or demonstration
 
-
+---
 
 
 
