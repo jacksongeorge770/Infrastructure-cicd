@@ -121,7 +121,7 @@ resource "aws_instance" "terraform" {
   sudo apt install -y golang-go
 
   # Allow Jenkins to access Docker socket
-  sudo chmod 666 /var/run/docker.sock
+  sudo chmod 400 /var/run/docker.sock
 
   # Final restart to ensure permissions apply
   sudo systemctl restart jenkins
